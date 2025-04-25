@@ -1,27 +1,34 @@
-from openai import OpenAI
+from llama_cpp import Llama
+import os
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
+llm = None  # Lazy-loaded model
+
+def load_model():
+    global llm
+    if llm is None:
+        model_path = os.path.join(settings.model_dir, "Meta-Llama-3-8B-Instruct-Q4_K_M.gguf")
+        logger.info(f"Loading LLaMA model {model_path}")
+        print(f"🧠 Loading LLaMA model from: {model_path}")
+        if not os.path.exists(model_path):
+            raise ValueError(f"Model path does not exist: {model_path}")
+        
+        llm = Llama(
+            model_path=model_path,
+            n_ctx=4096,
+            n_gpu_layers=-1,
+            n_threads=6,
+            verbose=False
+        )
 
 
-client = OpenAI(api_key=settings.openai_api_key)
+def create_response(context, query, max_tokens=400, temperature=0.3):
+    messages = [{
+        "role": "user",
+        "content": f"Context:\n{context}\n\nQuestion: {query}"
+    }]
+    return llm.create_chat_completion(messages, max_tokens=max_tokens, temperature=temperature)
 
-def generate_answer(question: str, context_chunks: list) -> str:
-    context = "\n\n".join(context_chunks)
-    prompt = f"""
-You are an assistant that answers questions based only on the provided context.
 
-Context:
-{context}
-
-Question: {question}
-Answer:
-    """.strip()
-
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You answer questions about uploaded documents."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2,
-    )
-    return response.choices[0].message.content.strip()

@@ -1,10 +1,10 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    openai_api_key: str
-    chroma_persist_dir: str = "vector_db"
     environment: str = "dev"
-
+    openai_api_key: str = ""
+    chroma_persist_dir: str = "chroma_db"
+    model_dir: str = "models"
     class Config:
         env_file = ".env"
 
