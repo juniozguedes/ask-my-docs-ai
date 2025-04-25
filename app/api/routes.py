@@ -1,14 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
 from app.core.config import settings
-from app.services import llm
+from app.services.llm import create_response
+from app.workers.pdf_processor import process_pdf
 import tempfile
 import os
 import logging
 import asyncio
+from app.services.vector_store import get_vectorstore
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # Faster embeddings
 CHROMA_PATH = settings.chroma_persist_dir
 
 # Global state for vector store
-embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
+db = get_vectorstore()
+
 
 async def process_pdf(file_path: str):
     """Process PDF asynchronously"""
@@ -61,7 +61,7 @@ async def concept(file: UploadFile = File(...)):
             
             # Query processing
             logger.info("Querying vector store")
-            query = "What is the title of the document?"
+            query = "Who is the author of this document? does any name appear on the footer?"
             docs = await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: db.similarity_search(query, k=3)
@@ -70,17 +70,10 @@ async def concept(file: UploadFile = File(...)):
 
             # Generate response
             logger.info("Generating response")
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: llm.create_chat_completion(
-                    messages=[{
-                        "role": "user",
-                        "content": f"Context:\n{context}\n\nQuestion: {query}"
-                    }],
-                    max_tokens=400,
-                    temperature=0.3
-                )
-            )
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(None, lambda: create_response(context, query))
+
+
             logger.info("Response generated")
             logger.info("Response: %s", response["choices"])
             return {"answer": response["choices"][0]["message"]["content"]}

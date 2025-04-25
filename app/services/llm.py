@@ -24,14 +24,11 @@ def load_model():
         )
 
 
-def create_chat_completion(messages, max_tokens=512, temperature=0.7):
-    if llm is None:
-        raise RuntimeError("LLM not loaded. Call `load_model()` first.")
-    
-    formatted = [{"role": msg["role"], "content": msg["content"]} for msg in messages]
-    return llm.create_chat_completion(
-        messages=formatted,
-        max_tokens=max_tokens,
-        temperature=temperature
-    )
+def create_response(context, query, max_tokens=400, temperature=0.3):
+    messages = [{
+        "role": "user",
+        "content": f"Context:\n{context}\n\nQuestion: {query}"
+    }]
+    return llm.create_chat_completion(messages, max_tokens=max_tokens, temperature=temperature)
+
 
