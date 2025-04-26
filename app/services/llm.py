@@ -24,11 +24,6 @@ def load_model():
         )
 
 
-def create_response(context, query, max_tokens=400, temperature=0.3):
-    messages = [{
-        "role": "user",
-        "content": f"Context:\n{context}\n\nQuestion: {query}"
-    }]
+def create_response_from_messages(messages, max_tokens=400, temperature=0.3):
     return llm.create_chat_completion(messages, max_tokens=max_tokens, temperature=temperature)
-
 
