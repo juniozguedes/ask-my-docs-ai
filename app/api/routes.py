@@ -24,6 +24,7 @@ db = get_vectorstore()
 
 @router.post("/askmydocs/upload")
 async def upload_pdf(file: UploadFile = File(...)):
+    logger.info("Starting upload doc route")
     try:
         logger.info("Processing PDF file")
         # Validate file type
@@ -37,7 +38,6 @@ async def upload_pdf(file: UploadFile = File(...)):
             temp_path = temp_file.name
 
         try:
-            logger.info("Processing PDF file")
             # Async document processing
             chunks = await process_pdf(temp_path)
             
@@ -64,6 +64,7 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 @router.post("/askmydocs/ask")
 async def ask_question(session_id: str = Form(...), query: str = Form(...)):
+    logger.info("Starting ask doc route")
     try:
         logger.info(f"Received question for session {session_id}")
 
